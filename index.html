@@ -1243,12 +1243,6 @@
     const wrap = canvas.parentElement;
     const ctx = canvas.getContext('2d');
 
-    function resize(){
-      const rect = wrap.getBoundingClientRect();
-      canvas.width = rect.width;
-      canvas.height = rect.height;
-      drawCover();
-    }
     function drawCover(){
       const grad = ctx.createLinearGradient(0,0,canvas.width,canvas.height);
       grad.addColorStop(0,'#d4af6a');
@@ -1279,11 +1273,30 @@
         ctx.fillStyle = 'rgba(243,217,164,.6)';
         ctx.fill();
       }
-    }
-    resize();
-    window.addEventListener('resize', resize);
 
-    ctx.globalCompositeOperation = 'destination-out';
+      // IMPORTANT: Reset composite mode to destination-out after each draw
+      // canvas.width = ... resets the context, so we must re-apply this!
+      ctx.globalCompositeOperation = 'destination-out';
+    }
+
+    function resize(){
+      const rect = wrap.getBoundingClientRect();
+      // Ensure valid dimensions before proceeding
+      if(rect.width === 0 || rect.height === 0) return;
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      drawCover();
+    }
+
+    // Debounced resize: prevents rapid resets on mobile (address bar hide/show, orientation, etc.)
+    let resizeTimeout;
+    function debouncedResize(){
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(resize, 150);
+    }
+
+    resize();
+    window.addEventListener('resize', debouncedResize);
 
     let drawing = false;
     function getPos(e){
